@@ -149,7 +149,7 @@ def make_item(i):
                                        dbc.Input(placeholder=f"{freeVariables[i]}", type="number", min=0,
                                                                                                   step=1,
                                                  id=f"{i}val", ),
-                                       dbc.Button("submit", color="success", className="mr-1")
+                                       dbc.Button("submit", id=f"{i}valbtn",color="success", className="mr-1")
                                        ]
                                        ,id=f"{i}_changeVal_Collapse",
                                       className="w-50",
@@ -427,6 +427,20 @@ html.Div(
     html.Div([dcc.Store(id=i, data=dict(enumerate(freeVariables[i].flatten(), 1))) for i in ['iz_params', 'E', 'w']]),
 
 ])
+
+
+def storeChangedVals(n,val,oldVal):
+    return val if n and val else oldVal
+
+storeChangedVals = \
+        {f'storeChangedVals{i}': app.callback(Output(component_id=i, component_property='data'),
+    Input(component_id=f'{i}valbtn', component_property='n_clicks'),
+    State(component_id=f'{i}val', component_property='value'),
+    State(component_id=i, component_property='data'),)(partial(storeChangedVals))
+         for i in ["T0","tau0","psp_amp0","psp_decay0"]}
+
+
+
 
 
 def makeOneDimMatrix(n,col,theDiv,i):
