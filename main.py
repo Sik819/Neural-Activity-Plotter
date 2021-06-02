@@ -489,7 +489,7 @@ storeTwoDimChangedVals = \
 
 
 
-def makeOneDimMatrix(n,m,col,theDiv,i):
+def makeOneDimMatrix(n,m,col,maxCol,theDiv,i):
     ctx = dash.callback_context
 
     mat = i[13:]
@@ -497,11 +497,10 @@ def makeOneDimMatrix(n,m,col,theDiv,i):
         return 'please enter values'
     if(n):
         mat = i[13:]
-        if col is None:
+        if col is None or col>maxCol or col<0 or not isinstance(col, int):
             raise PreventUpdate
 
         elif theDiv is None or theDiv == "please enter values":
-            print(theDiv)
             return [dbc.Input(placeholder=f"column {col} : {freeVariables[mat][col]}",
                          id=f"{mat}{col}",
                               type = "number", )]
@@ -531,11 +530,12 @@ makeOneDimMatrixValues = \
         Input(f"{i}_OnematVal_btn", "n_clicks"),
         Input(component_id= i , component_property='data'),
         State(f"{i}col", "value"),
+        State(f"{i}col", "max"),
         State(f"intputOneVal_{i}", "children"),
         State(f"intputOneVal_{i}", "id"),)(partial(makeOneDimMatrix))
          for i in ['E']}
 
-def makeTwoDimMatrix(n,m,row,col,theDiv,i):
+def makeTwoDimMatrix(n,m,row,maxRow,col,maxCol,theDiv,i):
     ctx = dash.callback_context
 
     mat = i[10:]
@@ -545,7 +545,8 @@ def makeTwoDimMatrix(n,m,row,col,theDiv,i):
 
     if(n):
         mat = i[10:]
-        if row is None or col is None:
+
+        if row is None or col is None or row<0 or col<0 or row>maxRow or col>maxCol or not isinstance(row, int) or not isinstance(col, int):
             raise PreventUpdate
 
         elif theDiv is None or theDiv == "please enter values":
@@ -576,7 +577,9 @@ makeTwoDimMatrixValues = \
         Input(f"{i}_matVal_btn", "n_clicks"),
         Input(component_id= i , component_property='data'),
         State(f"{i}row", "value"),
+        State(f"{i}row", "max"),
         State(f"{i}col", "value"),
+        State(f"{i}col", "max"),
         State(f"intputVal_{i}", "children"),
         State(f"intputVal_{i}", "id"),)(partial(makeTwoDimMatrix))
          for i in ['iz_params','w']}
