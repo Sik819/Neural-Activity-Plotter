@@ -354,7 +354,6 @@ def isMatrix(str):
 #front end:
 
 
-
 app.layout = html.Div(children=[
 
     html.H1(children='Neural Activity Ploter'),
@@ -421,6 +420,11 @@ html.Div(
         placeholder="Select a graph",
     ),
     html.Div(id='output-graph-div'),
+    #allocate memory on client side to store changes in values
+    #
+
+    html.Div([dcc.Store(id=i , data = freeVariables[i]) for i in ['tau0','T0','psp_amp0','psp_decay0']]),
+    html.Div([dcc.Store(id=i, data=dict(enumerate(freeVariables[i].flatten(), 1))) for i in ['iz_params', 'E', 'w']]),
 
 ])
 
