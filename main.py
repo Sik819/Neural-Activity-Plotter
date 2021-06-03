@@ -166,6 +166,30 @@ def make_item(i):
         ),
     ])
 
+
+def changeDictToMat(d, maxCol):
+    if(not maxCol):
+        j = np.zeros(len(d))
+        col = 0
+        for i in d.values():
+            j[col] = i
+            col += 1
+        return j
+
+    maxRow = int(len(d) / maxCol)
+    j = np.zeros((maxRow , maxCol ))
+    col = 0
+    row = 0
+
+    for i in d.values():
+        j[row][col] = i
+        col += 1
+        if col == maxCol:
+            col = 0
+            row += 1
+    return j
+
+
 def make_twoDimMatrix_item(i,maxRow,maxCol):
     v = i
     return html.Div(
@@ -395,16 +419,12 @@ html.Div(
     ]),
     ]),
 
-
-#     input_array("E", 1, 7,np.array([0, 0, 0, 300, 300, 500, 0]),'number'),
-
     html.Br(),
 
 
-     #input_array("w", 9, 9,np.zeros((9, 9)),"number"),
 
     html.Br(),
-    html.Button('Submit Changes', id='makeGraph', n_clicks=0),
+    dbc.Button('Submit Changes', id='submitChange'),
     dcc.Dropdown(
         id='ChooseGraph',
         options=[
@@ -462,19 +482,18 @@ storeOneDimChangedVals = \
          for i in ["E"]}
 
 def storeTwoDimChangedVals(n,newVal,oldVal,maxCol):
-    print(newVal)
+    print(oldVal)
+    numCol = maxCol +1
     data = oldVal
 
     if(n and (type(newVal) is list)):
         for i in newVal:
             if('value' in i['props'].keys()):
-                print(data)
                 row = int(i['props']['id'][-2])
                 col = int(i['props']['id'][-1]) + 1
-                id = (row*maxCol) + col
+                id = (row*numCol) + col
                 val = i['props']['value']
                 data[id] = val
-                print(data)
         return data
     return oldVal
 
@@ -699,73 +718,21 @@ def modifyChangeFunction(*iz):
 
 @app.callback(
     Output(component_id='output-graph-div', component_property='children'),
-    Input(component_id='makeGraph', component_property='n_clicks'),
-    [Input(component_id='ChooseGraph', component_property='value')]
+    [Input(component_id='ChooseGraph', component_property='value')],
+    Input('v','data'),
+    Input('g','data'),
+    State('v','data'),
+    State('g','data'),
+    State('n_steps','data'),
 )
-def makeGraph(*iz):
+def makeGraph(n, y,z,dv,dg,maxCol):
+    v = changeDictToMat(dv,maxCol)
+    g = changeDictToMat(dg,maxCol)
+
+
 
     cntx = dash.callback_context
-    # stn-gpe feedback
-    freeVariables['w'][6, 4] = 1
-    freeVariables['w'][4, 6] = -1 * 50
 
-    # output
-    freeVariables['w'][3, 5] = -1 * 100
-    freeVariables['w'][5, 0] = 1
-    #
-    # #update values if values change
-    # print(freeVariables['w'])
-    # t = np.arange(0, freeVariables['T0'], freeVariables['tau0'])
-    # n_steps = t.shape[0]
-    # n_cells = freeVariables['iz_params'].shape[0]
-    #
-    # # memory allocation for neurons
-    # v = np.zeros((n_cells, n_steps))
-    # u = np.zeros((n_cells, n_steps))
-    # g = np.zeros((n_cells, n_steps))
-    # spike = np.zeros((n_cells, n_steps))
-    # v[:, 0] = freeVariables['iz_params'][:, 1] + np.random.rand(n_cells) * 100
-    # I_net = np.zeros((n_cells, n_steps))
-    # I_in = np.zeros(n_steps)
-    # I_in[5000:] = 5e1
-    #
-    # for i in range(1, n_steps):
-    #
-    #     dt = t[i] - t[i - 1]
-    #
-    #     I_net = np.zeros((n_cells, n_steps))
-    #     for jj in range(n_cells):
-    #         for kk in range(n_cells):
-    #             if jj != kk:
-    #                 I_net[jj, i - 1] += freeVariables['w'][kk, jj] * g[kk, i - 1]
-    #             if jj == 0:
-    #                 I_net[jj, i - 1] += I_in[i - 1]
-    #
-    #             C = freeVariables['iz_params'][jj, 0]
-    #             vr = freeVariables['iz_params'][jj, 1]
-    #             vt = freeVariables['iz_params'][jj, 2]
-    #             vpeak = freeVariables['iz_params'][jj, 3]
-    #             a = freeVariables['iz_params'][jj, 4]
-    #             b = freeVariables['iz_params'][jj, 5]
-    #             c = freeVariables['iz_params'][jj, 6]
-    #             d = freeVariables['iz_params'][jj, 7]
-    #             k = freeVariables['iz_params'][jj, 8]
-    #
-    #             dvdt = (k * (v[jj, i - 1] - vr) * (v[jj, i - 1] - vt) - u[jj, i - 1] +
-    #                     I_net[jj, i - 1] + freeVariables['E'][jj]) / C
-    #             dudt = a * (b * (v[jj, i - 1] - vr) - u[jj, i - 1])
-    #
-    #             dgdt = (-g[jj, i - 1] + freeVariables['psp_amp0'] * spike[jj, i - 1]) / freeVariables['psp_decay0']
-    #
-    #             v[jj, i] = v[jj, i - 1] + dvdt * dt
-    #             u[jj, i] = u[jj, i - 1] + dudt * dt
-    #             g[jj, i] = g[jj, i - 1] + dgdt * dt
-    #
-    #             if v[jj, i] >= vpeak:
-    #                 v[jj, i - 1] = vpeak
-    #                 v[jj, i] = c
-    #                 u[jj, i] = u[jj, i] + d
-    #                 spike[jj, i] = 1
     graph_dict = {'ctx': dcc.Graph(
         id='ctx_graph',
         figure={
@@ -849,6 +816,71 @@ def makeGraph(*iz):
 
     return graph_dict[cntx.triggered[0]['value']] if cntx.triggered and cntx.triggered[0]['prop_id'].split('.')[0] == "ChooseGraph" else ''
 
+
+@app.callback(
+    [Output(i,"data")for i in ['t','v','u','g','spike','I_net','I_in','n_steps','n_cells']],
+    Input("submitChange","n_clicks"),
+    [State(i , "data") for i in ['tau0','T0','psp_amp0','psp_decay0','iz_params','E','w']],
+    prevent_initial_call=True
+)
+def makeChanges(n,tau0,T0,psp_amp0,psp_decay0,iz_params0,E0,w0):
+    tau = tau0
+    T = T0
+    t = np.arange(0, T, tau)
+    n_steps = t.shape[0]
+    iz_params = changeDictToMat(iz_params0,len(freeVariables["iz_params"][0]))
+    E = changeDictToMat(E0,None)
+    n_cells = iz_params.shape[0]
+    psp_amp = psp_amp0
+    psp_decay = psp_decay0
+    v = np.zeros((n_cells, n_steps))
+    u = np.zeros((n_cells, n_steps))
+    g = np.zeros((n_cells, n_steps))
+    spike = np.zeros((n_cells, n_steps))
+    v[:, 0] = iz_params[:, 1] + np.random.rand(n_cells) * 100
+    w = changeDictToMat(w0,len(freeVariables['w'][0]))
+    I_net = np.zeros((n_cells, n_steps))
+    I_in = np.zeros(n_steps)
+    I_in[5000:] = 5e1
+
+    for i in range(1, n_steps):
+
+        dt = t[i] - t[i - 1]
+
+        I_net = np.zeros((n_cells, n_steps))
+        for jj in range(n_cells):
+            for kk in range(n_cells):
+                if jj != kk:
+                    I_net[jj, i - 1] += w[kk, jj] * g[kk, i - 1]
+                if jj == 0:
+                    I_net[jj, i - 1] += I_in[i - 1]
+
+            C = iz_params[jj, 0]
+            vr = iz_params[jj, 1]
+            vt = iz_params[jj, 2]
+            vpeak = iz_params[jj, 3]
+            a = iz_params[jj, 4]
+            b = iz_params[jj, 5]
+            c = iz_params[jj, 6]
+            d = iz_params[jj, 7]
+            k = iz_params[jj, 8]
+
+            dvdt = (k * (v[jj, i - 1] - vr) * (v[jj, i - 1] - vt) - u[jj, i - 1] +
+                    I_net[jj, i - 1] + E[jj]) / C
+            dudt = a * (b * (v[jj, i - 1] - vr) - u[jj, i - 1])
+            dgdt = (-g[jj, i - 1] + psp_amp * spike[jj, i - 1]) / psp_decay
+
+            v[jj, i] = v[jj, i - 1] + dvdt * dt
+            u[jj, i] = u[jj, i - 1] + dudt * dt
+            g[jj, i] = g[jj, i - 1] + dgdt * dt
+
+            if v[jj, i] >= vpeak:
+                v[jj, i - 1] = vpeak
+                v[jj, i] = c
+                u[jj, i] = u[jj, i] + d
+                spike[jj, i] = 1
+
+    return dict(enumerate(t.flatten(), 1)),dict(enumerate(v.flatten(), 1)),dict(enumerate(u.flatten(), 1)),dict(enumerate(g.flatten(), 1)),dict(enumerate(spike.flatten(), 1)),dict(enumerate(I_net.flatten(), 1)),dict(enumerate(I_in.flatten(), 1)),n_steps, n_cells
 
 
 if __name__ == '__main__':
