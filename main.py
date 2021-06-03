@@ -41,7 +41,6 @@ freeVariables = {'tau0': 0.1,
  'psp_decay0': 100,
  'w': np.zeros((9, 9)),
 
- 'I_in': np.zeros(2000)
 }
 
 # direct pathway
@@ -425,7 +424,8 @@ html.Div(
 
     html.Div([dcc.Store(id=i , data = freeVariables[i]) for i in ['tau0','T0','psp_amp0','psp_decay0']]),
     html.Div([dcc.Store(id=i, data=dict(enumerate(freeVariables[i].flatten(), 1))) for i in ['iz_params', 'E', 'w']]),
-
+    html.Div([dcc.Store(id=j, data=dict(enumerate(i.flatten(), 1))) for i,j in zip([t,v,u,g,spike,I_net,I_in],["t","v","u","g","spike","I_net","I_in"])]),
+    html.Div([dcc.Store(id=j, data=i) for i,j in zip([n_steps,n_cells],["n_steps","n_cells"])]),
 ])
 
 
@@ -453,7 +453,7 @@ def storeOneDimChangedVals(n,newVal,oldVal):
 
         return data
     return oldVal
-storeTwoDimChangedVals = \
+storeOneDimChangedVals = \
         {f'storeOneDimChangedVals{i}': app.callback(Output(component_id=i, component_property='data'),
         Input(f"{i}valbtn", "n_clicks"),
         State(f"intputOneVal_{i}", "children"),
@@ -461,16 +461,20 @@ storeTwoDimChangedVals = \
         prevent_initial_call=True)(partial(storeOneDimChangedVals))
          for i in ["E"]}
 
-def storeTwoDimChangedVals(n,newVal,oldVal):
+def storeTwoDimChangedVals(n,newVal,oldVal,maxCol):
     print(newVal)
     data = oldVal
 
     if(n and (type(newVal) is list)):
         for i in newVal:
             if('value' in i['props'].keys()):
-                id = i['props']['id'][-2] + str(int(i['props']['id'][-1])+1) if i['props']['id'][-2] != '0' else str(int(i['props']['id'][-1])+1)
+                print(data)
+                row = int(i['props']['id'][-2])
+                col = int(i['props']['id'][-1]) + 1
+                id = (row*maxCol) + col
                 val = i['props']['value']
                 data[id] = val
+                print(data)
         return data
     return oldVal
 
@@ -479,6 +483,7 @@ storeTwoDimChangedVals = \
         Input(f"{i}valbtn", "n_clicks"),
         State(f"intputVal_{i}", "children"),
         State(component_id=i, component_property='data'),
+        State(f"{i}col", "max"),
         prevent_initial_call=True)(partial(storeTwoDimChangedVals))
          for i in ["iz_params","w"]}
 
@@ -540,7 +545,6 @@ def makeTwoDimMatrix(n,m,row,maxRow,col,maxCol,theDiv,i):
 
     mat = i[10:]
     if ctx.triggered[0]['prop_id'].split('.')[0] == mat:
-        print('ey man im stuck here')
         return 'please enter values'
 
     if(n):
