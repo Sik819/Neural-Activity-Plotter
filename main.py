@@ -16,9 +16,8 @@ from dash.exceptions import PreventUpdate
 
 external_stylesheets = [dbc.themes.LUX]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
 
+#For initial run
 freeVariables = {'tau0': 0.1,
  'T0': 2000,
  'iz_params': np.array([[ 1.0e+02, -6.0e+01, -4.0e+01,  3.5e+01,  3.0e-02, -2.0e+00,
@@ -43,14 +42,9 @@ freeVariables = {'tau0': 0.1,
 
 }
 
-# direct pathway
 freeVariables['w'][0, 1] = 1 * 100
 freeVariables['w'][1, 3] = -1 * 125
 
-# indirect pathway
-# w[0, 2] = 1 * 100
-# w[2, 4] = -1 * 100
-# w[4, 3] = -1 * 25
 
 # hyperdirect pathway
 freeVariables['w'][0, 6] = 1 * 90
@@ -129,6 +123,7 @@ for i in range(1, n_steps):
 
 #Helper functions:
 
+#makes an item for a single variable
 def make_item(i):
     v = i[0:len(i)-1]
     return html.Div(
@@ -142,7 +137,7 @@ def make_item(i):
         ),
         dbc.Collapse(
             dbc.Card(dbc.CardBody([html.Div("Value: "),
-                                   html.Div(freeVariables[i]),
+                                   html.Div(freeVariables[i],id=f"{i}label"),
                                    dbc.Collapse([
                                        #input_array(v, 1,1,np.array([freeVariables[i]]),'number'),
                                        dbc.Input(placeholder=f"{freeVariables[i]}", type="number", min=0,
@@ -166,7 +161,7 @@ def make_item(i):
         ),
     ])
 
-
+#Changes a flatten dictionary to a matrix
 def changeDictToMat(d, maxCol):
     if(not maxCol):
         j = np.zeros(len(d))
@@ -189,7 +184,7 @@ def changeDictToMat(d, maxCol):
             row += 1
     return j
 
-
+#makes a two dimensional item
 def make_twoDimMatrix_item(i,maxRow,maxCol):
     v = i
     return html.Div(
@@ -203,7 +198,7 @@ def make_twoDimMatrix_item(i,maxRow,maxCol):
             ),
             dbc.Collapse(
                 dbc.Card(dbc.CardBody([html.Div("This variable is a matrix "),
-                                       html.Div(dbc.Table.from_dataframe(pd.DataFrame(freeVariables[i]))),
+                                       html.Div(dbc.Table.from_dataframe(pd.DataFrame(freeVariables[i])), id = f"{v}label"),
                                        dbc.Collapse([
                                            dbc.Input(placeholder="Enter Row Number", type="number", min=0, max=maxRow-1,
                                                      step=1,
@@ -247,6 +242,7 @@ def make_twoDimMatrix_item(i,maxRow,maxCol):
             ),
         ])
 
+#makes an one dimensional matrix item
 def make_oneDimMatrix_item(i,maxCol):
     v = i
     return html.Div(
@@ -260,7 +256,7 @@ def make_oneDimMatrix_item(i,maxCol):
             ),
             dbc.Collapse(
                 dbc.Card(dbc.CardBody([html.Div("This variable is a matrix "),
-                                       html.Div(dbc.Table.from_dataframe(pd.DataFrame(freeVariables[i]))),
+                                       html.Div(dbc.Table.from_dataframe(pd.DataFrame(freeVariables[i])), id = f"{v}label"),
                                        dbc.Collapse([
 
                                            dbc.Input(placeholder="Enter Column Number", type="number", min=0,
@@ -303,80 +299,7 @@ def make_oneDimMatrix_item(i,maxCol):
         ])
 
 
-def input_array(label, num_rows ,num_column,val,type='number'):
-    inputString = html.Label(label),
-
-    if val.any and val.shape[0]:
-        try:
-            val.any(axis=1)
-        except IndexError:
-            inputString = input_onedim_array(label, inputString ,num_column,val,'number')
-            return html.Div(
-                id=label,
-
-                children=[i for i in inputString])
-
-
-    if val.any and val.shape[1]:
-
-        inputString = input_twodim_array(label,inputString ,num_rows,num_column,val,'number')
-
-    elif not val:
-        for i in range(num_rows):
-            if i != 0:
-                inputString += html.Br(),
-            for j in range(num_column):
-                inputString += dbc.Input(
-                    id=label + "{}".format(str(i) + str(j)),
-                    type=type,
-                ),
-    return html.Div(
-        id=label,
-
-        children=[i for i in inputString])
-
-
-def input_onedim_array(label,inputString ,num_column,val,type='number',):
-
-
-    for i in range(num_column):
-        inputString += (dbc.Input(
-            id=label + "{}".format(i),
-            type=type,
-            value=val[i],
-            bs_size = 'sm',
-            size = "10"
-        ),)
-
-    return inputString
-
-def input_twodim_array(label,inputString ,num_rows,num_column,val,type='number'):
-
-
-    for i in range(num_rows):
-            if i != 0:
-                inputString += (html.Br(),)
-            for j in range(num_column):
-                inputString += (html.Div(dbc.Input(
-                id=label + "{}{}".format(str(i) , str(j)),
-                type=type,
-                value = val[i][j],
-                    bs_size='sm',
-                    size="10"
-                ),
-                id = label + "{}{}".format(str(i) , str(j)) + "div",
-                hidden = True,)),
-    return inputString
-
-def isMatrix(str):
-    matrices = ["iz_params", "w", "E"]
-    return (str[0:len(str)-2],2) if (str[0:len(str)-2] in matrices) else (str[0:len(str)-1],1) if (str[0:len(str)-1] in matrices) else None
-
-
-
-#front end:
-
-
+#Renders front end:
 app.layout = html.Div(children=[
 
     html.H1(children='Neural Activity Ploter'),
@@ -420,9 +343,6 @@ html.Div(
     ]),
 
     html.Br(),
-
-
-
     html.Br(),
     dbc.Button('Submit Changes', id='submitChange'),
     dcc.Dropdown(
@@ -439,8 +359,9 @@ html.Div(
         placeholder="Select a graph",
     ),
     html.Div(id='output-graph-div'),
+
+
     #allocate memory on client side to store changes in values
-    #
 
     html.Div([dcc.Store(id=i , data = freeVariables[i]) for i in ['tau0','T0','psp_amp0','psp_decay0']]),
     html.Div([dcc.Store(id=i, data=dict(enumerate(freeVariables[i].flatten(), 1))) for i in ['iz_params', 'E', 'w']]),
@@ -448,22 +369,21 @@ html.Div(
     html.Div([dcc.Store(id=j, data=i) for i,j in zip([n_steps,n_cells],["n_steps","n_cells"])]),
 ])
 
-
+#Store changes in single variables in the memory
 def storeChangedVals(n,val,oldVal):
     return val if n and val else oldVal
 
 storeChangedVals = \
         {f'storeChangedVals{i}': app.callback(Output(component_id=i, component_property='data'),
+                                            Input(component_id=f'{i}valbtn', component_property='n_clicks'),
+                                            State(component_id=f'{i}val', component_property='value'),
+                                            State(component_id=i, component_property='data'),)(partial(storeChangedVals))
+        for i in ["T0","tau0","psp_amp0","psp_decay0"]}
 
-    Input(component_id=f'{i}valbtn', component_property='n_clicks'),
-    State(component_id=f'{i}val', component_property='value'),
-    State(component_id=i, component_property='data'),)(partial(storeChangedVals))
-         for i in ["T0","tau0","psp_amp0","psp_decay0"]}
 
-
+#Stores changes in matrices
 def storeOneDimChangedVals(n,newVal,oldVal):
     data = oldVal
-
     if(n and (type(newVal) is list)):
         for i in newVal:
             if ('value' in i['props'].keys()):
@@ -475,17 +395,15 @@ def storeOneDimChangedVals(n,newVal,oldVal):
     return oldVal
 storeOneDimChangedVals = \
         {f'storeOneDimChangedVals{i}': app.callback(Output(component_id=i, component_property='data'),
-        Input(f"{i}valbtn", "n_clicks"),
-        State(f"intputOneVal_{i}", "children"),
-        State(component_id=i, component_property='data'),
-        prevent_initial_call=True)(partial(storeOneDimChangedVals))
+                                                    Input(f"{i}valbtn", "n_clicks"),
+                                                    State(f"intputOneVal_{i}", "children"),
+                                                    State(component_id=i, component_property='data'),
+                                                    prevent_initial_call=True)(partial(storeOneDimChangedVals))
          for i in ["E"]}
 
 def storeTwoDimChangedVals(n,newVal,oldVal,maxCol):
-    print(oldVal)
-    numCol = maxCol +1
+    numCol = maxCol+1
     data = oldVal
-
     if(n and (type(newVal) is list)):
         for i in newVal:
             if('value' in i['props'].keys()):
@@ -499,33 +417,32 @@ def storeTwoDimChangedVals(n,newVal,oldVal,maxCol):
 
 storeTwoDimChangedVals = \
         {f'storeTwoDimChangedVals{i}': app.callback(Output(component_id=i, component_property='data'),
-        Input(f"{i}valbtn", "n_clicks"),
-        State(f"intputVal_{i}", "children"),
-        State(component_id=i, component_property='data'),
-        State(f"{i}col", "max"),
-        prevent_initial_call=True)(partial(storeTwoDimChangedVals))
+                                                    Input(f"{i}valbtn", "n_clicks"),
+                                                    State(f"intputVal_{i}", "children"),
+                                                    State(component_id=i, component_property='data'),
+                                                    State(f"{i}col", "max"),
+                                                    prevent_initial_call=True)(partial(storeTwoDimChangedVals))
          for i in ["iz_params","w"]}
 
-
-
-
-
-
-
-
-def makeOneDimMatrix(n,m,col,maxCol,theDiv,i):
+#Render row/column input values for matrices
+def makeOneDimMatrix(n,m,col,maxCol,theDiv,i,data):
     ctx = dash.callback_context
 
     mat = i[13:]
+
     if ctx.triggered[0]['prop_id'].split('.')[0] == mat:
         return 'please enter values'
+
+    id = col + 1 if col is not None else None
+
     if(n):
         mat = i[13:]
+
         if col is None or col>maxCol or col<0 or not isinstance(col, int):
             raise PreventUpdate
 
         elif theDiv is None or theDiv == "please enter values":
-            return [dbc.Input(placeholder=f"column {col} : {freeVariables[mat][col]}",
+            return [dbc.Input(placeholder=f"column {col} : {data[str(id)]}",
                          id=f"{mat}{col}",
                               type = "number", )]
 
@@ -535,37 +452,36 @@ def makeOneDimMatrix(n,m,col,maxCol,theDiv,i):
                 if(rowCol == str(col)):
                     raise PreventUpdate
 
-            print("ey yo")
-            print(theDiv)
             x = theDiv
-            x.append(dbc.Input(placeholder=f"column {col} : {freeVariables[mat][col]}",
+            x.append(dbc.Input(placeholder=f"column {col} : {data[str(id)]}",
                                                id=f"{mat}{col}",
                                type = "number",
                                   ))
 
             return x
 
-
     else:
         return 'please enter values'
 
 makeOneDimMatrixValues = \
         {f'makeOneDimMatrix{i}': app.callback(Output(f"intputOneVal_{i}", "children"),
-        Input(f"{i}_OnematVal_btn", "n_clicks"),
-        Input(component_id= i , component_property='data'),
-        State(f"{i}col", "value"),
-        State(f"{i}col", "max"),
-        State(f"intputOneVal_{i}", "children"),
-        State(f"intputOneVal_{i}", "id"),)(partial(makeOneDimMatrix))
+                                Input(f"{i}_OnematVal_btn", "n_clicks"),
+                                Input(component_id= i , component_property='data'),
+                                State(f"{i}col", "value"),
+                                State(f"{i}col", "max"),
+                                State(f"intputOneVal_{i}", "children"),
+                                State(f"intputOneVal_{i}", "id"),
+                                State(i , "data"),prevent_initial_call=True)(partial(makeOneDimMatrix))
          for i in ['E']}
 
-def makeTwoDimMatrix(n,m,row,maxRow,col,maxCol,theDiv,i):
+def makeTwoDimMatrix(n,m,row,maxRow,col,maxCol,theDiv,i,data):
     ctx = dash.callback_context
 
     mat = i[10:]
+    id = (row * (maxCol+1)) + (col+1)
     if ctx.triggered[0]['prop_id'].split('.')[0] == mat:
         return 'please enter values'
-
+    id = (row * (maxCol + 1)) + (col + 1) if row is not None and col is not None else None
     if(n):
         mat = i[10:]
 
@@ -573,7 +489,7 @@ def makeTwoDimMatrix(n,m,row,maxRow,col,maxCol,theDiv,i):
             raise PreventUpdate
 
         elif theDiv is None or theDiv == "please enter values":
-            return [dbc.Input(placeholder=f"row {row} column {col} : {freeVariables[mat][row][col]}",
+            return [dbc.Input(placeholder=f"row {row} column {col} : {data[str(id)]}",
                          id=f"{mat}{row}{col}",
                               type = "number", )]
 
@@ -584,7 +500,7 @@ def makeTwoDimMatrix(n,m,row,maxRow,col,maxCol,theDiv,i):
                     raise PreventUpdate
 
             x = theDiv
-            x.append(dbc.Input(placeholder=f"row {row} column {col} : {freeVariables[mat][row][col]}",
+            x.append(dbc.Input(placeholder=f"row {row} column {col} : {data[str(id)]}",
                                                id=f"{mat}{row}{col}",
                                type = "number",
                                   ))
@@ -597,56 +513,34 @@ def makeTwoDimMatrix(n,m,row,maxRow,col,maxCol,theDiv,i):
 
 makeTwoDimMatrixValues = \
         {f'makeTwoDimMatrix{i}': app.callback(Output(f"intputVal_{i}", "children"),
-        Input(f"{i}_matVal_btn", "n_clicks"),
-        Input(component_id= i , component_property='data'),
-        State(f"{i}row", "value"),
-        State(f"{i}row", "max"),
-        State(f"{i}col", "value"),
-        State(f"{i}col", "max"),
-        State(f"intputVal_{i}", "children"),
-        State(f"intputVal_{i}", "id"),)(partial(makeTwoDimMatrix))
+                                            Input(f"{i}_matVal_btn", "n_clicks"),
+                                            Input(component_id= i , component_property='data'),
+                                            State(f"{i}row", "value"),
+                                            State(f"{i}row", "max"),
+                                            State(f"{i}col", "value"),
+                                            State(f"{i}col", "max"),
+                                            State(f"intputVal_{i}", "children"),
+                                            State(f"intputVal_{i}", "id"),
+                                            State(i , "data"),prevent_initial_call=True)(partial(makeTwoDimMatrix))
          for i in ['iz_params','w']}
 
 
+#Renders collapse frontend functionality for each parameter
 def showSingleInput(n,is_open):
     if n:
         return not is_open
     return is_open
 
 makeEditCollapse = \
-        {f'showSingleInput{k}': app.callback(
-            Output(f"{k}_changeVal_Collapse", "is_open"),
-        Input(f"{k}_changeVal_btn", "n_clicks"),
-        State(f"{k}_changeVal_Collapse", "is_open"),)(partial(showSingleInput))
+        {f'showSingleInput{k}': app.callback(Output(f"{k}_changeVal_Collapse", "is_open"),
+                                            Input(f"{k}_changeVal_btn", "n_clicks"),
+                                            State(f"{k}_changeVal_Collapse", "is_open"),)(partial(showSingleInput))
          for k in ["T0","tau0","psp_amp0","psp_decay0",'iz_params','w','E']}
 
 
 
 
-# @app.callback(
-#     [Output(f"{i}_changeVal_Collapse", "is_open") for i in ["T0","tau0","psp_amp0","psp_decay0"]],
-#     [Input(f"{i}_changeVal_btn", "n_clicks") for i in ["T0","tau0","psp_amp0","psp_decay0"]],
-#     [State(f"{i}_changeVal_Collapse", "is_open") for i in ["T0","tau0","psp_amp0","psp_decay0"]],
-# )
-# def showSingleInput(n1, n2,n3,n4, is_open1, is_open2, is_open3, is_open4):
-#     ctx = dash.callback_context
-#
-#     if not ctx.triggered:
-#         return False, False, False, False
-#     else:
-#         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-#
-#     if button_id == "T0_changeVal_btn" and n1:
-#         return not is_open1, False,False,False
-#     elif button_id == "tau0_changeVal_btn" and n2:
-#         return False, not is_open2 ,False,False
-#     elif button_id == "psp_amp0_changeVal_btn" and n3:
-#         return False, False, not is_open3, False
-#     elif button_id == "psp_decay0_changeVal_btn" and n4:
-#         return False, False, False, not is_open4
-#     return False, False, False, False
-
-
+#Keeps a single collapse open at a time
 @app.callback(
     [Output(f"collapse-{i}", "is_open") for i in ["T0","tau0","psp_amp0","psp_decay0","iz_params","w","E"]],
     [Input(f"{i}-toggle", "n_clicks") for i in ["T0","tau0","psp_amp0","psp_decay0","iz_params","w","E"]],
@@ -678,43 +572,6 @@ def toggle_accordion(n1, n2,n3,n4,n5,n6,n7, is_open1, is_open2,is_open3,is_open4
 
     return False, False, False, False, False, False, False
 
-
-
-def modifyChangeFunction(*iz):
-
-    #enter free variables here
-
-
-    ctx = dash.callback_context
-
-    #if change is made:
-    if ctx.triggered:
-        changedID = ctx.triggered[0]['prop_id'].split('.')[0]
-
-        if(isMatrix(changedID) and isMatrix(changedID)[1] == 2): #check if changed value is a matrix variable
-            #2dim array
-
-            i = int(changedID[len(changedID)-2])
-            j = int(changedID[len(changedID)-1])
-            freeVariables[isMatrix(changedID)[0]][i][j] = ctx.triggered[0]['value']
-
-        elif (isMatrix(changedID) and isMatrix(changedID)[1] == 1):
-            #one dim array
-
-            i = int(changedID[len(changedID) - 1])
-            freeVariables[isMatrix(changedID)[0]][i] = ctx.triggered[0]['value']
-
-        else:
-            if(changedID == 'psp_decay0'):
-                #safety param for division
-                if(ctx.triggered[0]['value'] == 0):
-                    freeVariables[changedID] = 1
-                else:
-                    freeVariables[changedID] = ctx.triggered[0]['value']
-            else:
-                freeVariables[changedID] = ctx.triggered[0]['value']
-
-    return str(iz) + " "
 
 @app.callback(
     Output(component_id='output-graph-div', component_property='children'),
@@ -816,7 +673,7 @@ def makeGraph(n, y,z,dv,dg,maxCol):
 
     return graph_dict[cntx.triggered[0]['value']] if cntx.triggered and cntx.triggered[0]['prop_id'].split('.')[0] == "ChooseGraph" else ''
 
-
+#makes changes in backend
 @app.callback(
     [Output(i,"data")for i in ['t','v','u','g','spike','I_net','I_in','n_steps','n_cells']],
     Input("submitChange","n_clicks"),
@@ -882,6 +739,32 @@ def makeChanges(n,tau0,T0,psp_amp0,psp_decay0,iz_params0,E0,w0):
 
     return dict(enumerate(t.flatten(), 1)),dict(enumerate(v.flatten(), 1)),dict(enumerate(u.flatten(), 1)),dict(enumerate(g.flatten(), 1)),dict(enumerate(spike.flatten(), 1)),dict(enumerate(I_net.flatten(), 1)),dict(enumerate(I_in.flatten(), 1)),n_steps, n_cells
 
+#Changes UI variables if change in variable is submitted
+def UiChangeVar(n,m):
+    return m,m
+
+makeUiChangeVar = \
+        {f'UiChangeVar{i}': app.callback(Output(f"{i}label","children"),
+    Output(f"{i}val","placeholder"),
+    Input(i , "data"),
+    State(i , "data"),
+    prevent_initial_call=True)(partial(UiChangeVar))
+         for i in ['tau0','T0','psp_amp0','psp_decay0']}
+
+def UiChangeMat(n,m,id):
+    mat = changeDictToMat(m,len(freeVariables[id][0])) if id != 'E' else changeDictToMat(m,None)
+
+    return dbc.Table.from_dataframe(pd.DataFrame(mat))
+
+makeUiChangeMat = \
+        {f'UiChangeMat{i}': app.callback(Output(f"{i}label","children"),
+    Input(i , "data"),
+    State(i , "data"),
+    State(i,"id"),
+    prevent_initial_call=True)(partial(UiChangeMat))
+         for i in ['iz_params','w','E']}
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
