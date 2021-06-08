@@ -671,34 +671,44 @@ def makeGraph(n, y,z,dv,dg,maxCol):
 
 
 
-    return graph_dict[cntx.triggered[0]['value']] if cntx.triggered and cntx.triggered[0]['prop_id'].split('.')[0] == "ChooseGraph" else ''
+    return graph_dict[cntx.triggered[0]['value']] if cntx.triggered and cntx.triggered[0]['prop_id'].split('.')[0] == "ChooseGraph" and cntx.triggered[0]['value'] else ''
 
 #makes changes in backend
 @app.callback(
     [Output(i,"data")for i in ['t','v','u','g','spike','I_net','I_in','n_steps','n_cells']],
     Input("submitChange","n_clicks"),
-    [State(i , "data") for i in ['tau0','T0','psp_amp0','psp_decay0','iz_params','E','w']],
+    [State(i , "data") for i in ['tau0','T0','psp_amp0','psp_decay0','iz_params','E','w','t','v','u','g','spike','I_net','I_in','n_steps','n_cells']],
     prevent_initial_call=True
 )
-def makeChanges(n,tau0,T0,psp_amp0,psp_decay0,iz_params0,E0,w0):
-    tau = tau0
-    T = T0
-    t = np.arange(0, T, tau)
-    n_steps = t.shape[0]
-    iz_params = changeDictToMat(iz_params0,len(freeVariables["iz_params"][0]))
-    E = changeDictToMat(E0,None)
-    n_cells = iz_params.shape[0]
+def makeChanges(n,tau0,T0,psp_amp0,psp_decay0,iz_params0,E0,w0,t0,v0,u0,g0,spike0,I_net0,I_in0,n_steps0,n_cells0):
+    iz_params = changeDictToMat(iz_params0, len(freeVariables["iz_params"][0]))
+    E = changeDictToMat(E0, None)
     psp_amp = psp_amp0
     psp_decay = psp_decay0
-    v = np.zeros((n_cells, n_steps))
-    u = np.zeros((n_cells, n_steps))
-    g = np.zeros((n_cells, n_steps))
-    spike = np.zeros((n_cells, n_steps))
-    v[:, 0] = iz_params[:, 1] + np.random.rand(n_cells) * 100
-    w = changeDictToMat(w0,len(freeVariables['w'][0]))
-    I_net = np.zeros((n_cells, n_steps))
-    I_in = np.zeros(n_steps)
-    I_in[5000:] = 5e1
+    w = changeDictToMat(w0, len(freeVariables['w'][0]))
+    n_steps = n_steps0
+    n_cells = n_cells0
+    v = changeDictToMat(v0,n_steps)
+    u = changeDictToMat(u0,n_steps)
+    g = changeDictToMat(g0,n_steps)
+    spike = changeDictToMat(spike0,n_steps)
+    I_net = changeDictToMat(I_net0,n_steps)
+    I_in = changeDictToMat(I_in0,None)
+
+    #
+    # tau = tau0
+    # T = T0
+    # t = np.arange(0, T, tau)
+    # n_steps = t.shape[0]
+    # n_cells = iz_params.shape[0]
+    # v = np.zeros((n_cells, n_steps))
+    # u = np.zeros((n_cells, n_steps))
+    # g = np.zeros((n_cells, n_steps))
+    # spike = np.zeros((n_cells, n_steps))
+    # v[:, 0] = iz_params[:, 1] + np.random.rand(n_cells) * 100
+    # I_net = np.zeros((n_cells, n_steps))
+    # I_in = np.zeros(n_steps)
+    # I_in[5000:] = 5e1
 
     for i in range(1, n_steps):
 
